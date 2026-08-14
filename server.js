@@ -4,16 +4,20 @@ const app = express();
 
 app.get("/", (req, res) => {
   res.json({
-    message: "Render is working",
-    data: [
-      { name: "Cornell University", location: "Ithaca, NY" },
-      { name: "MIT", location: "Cambridge, MA" }
-    ]
+    message: "Exa web research test is running",
+    usage: "/search?q=your+query"
   });
 });
 
 app.get("/search", async (req, res) => {
   const query = req.query.q;
+
+  if (!query) {
+    return res.status(400).json({
+      error: "Missing query",
+      usage: "/search?q=your+query"
+    });
+  }
 
   try {
     const response = await fetch("https://api.exa.ai/search", {
@@ -30,12 +34,27 @@ app.get("/search", async (req, res) => {
 
     const data = await response.json();
 
-    res.json(data);
+    if (!response.ok) {
+      return res.status(response.status).json({
+        error: "Exa request failed",
+        details: data
+      });
+    }
+
+    res.json({
+      query,
+      resultCount: data.results?.length ?? 0,
+      searchTime: data.searchTime ?? null,
+      cost: data.costDollars?.total ?? null,
+      results: data.results ?? []
+    });
+
   } catch (error) {
-    console.error(error);
+    console.error("Search error:", error);
 
     res.status(500).json({
-      error: "Search failed"
+      error: "Search failed",
+      message: error.message
     });
   }
 });
